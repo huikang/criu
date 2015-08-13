@@ -992,16 +992,24 @@ static int prepare_cgroup_dir_properties(char *path, int off, CgroupDirEntry **e
 		CgroupDirEntry *e = ents[i];
 		size_t off2 = off;
 
-		if (strcmp(e->dir_name, "") ==0)  {
-			continue;
+		if (strcmp(e->dir_name, "") == 0) {
+			pr_info("---> Empty name for top path %s %s, top dir\n", path, e->dir_name);
+			if (strstr(path, "cpu") || strstr(path, "memory")) {
+				pr_info("---> Skip Empty name for top path %s %s, top dir\n", path, e->dir_name);				
+				continue;
+			}
 		}
 
 		off2 += sprintf(path + off, "/%s", e->dir_name);
 		if (e->n_properties > 0) {
+			pr_info("---> %ld properties\n", e->n_properties);
 			for (j = 0; j < e->n_properties; ++j) {
+				pr_info("---> path %s Pro name %s, top dir\n", path, e->properties[j]->name);
 				if (restore_cgroup_prop(e->properties[j], path, off2) < 0)
 					return -1;
 			}
+		} else {
+			pr_info("---> zero property path: %s\n", path);
 		}
 
 		if (prepare_cgroup_dir_properties(path, off2, e->children, e->n_children) < 0)
@@ -1036,11 +1044,17 @@ static int restore_special_cpuset_props(char *paux, size_t off, CgroupDirEntry *
 {
 	int i, j;
 
+	pr_info("---> Restore special cpuset props\n");
+
 	for (i = 0; special_cpuset_props[i]; i++) {
 		const char *name = special_cpuset_props[i];
 
+		pr_info("---> Name: %s\n", name);
+
 		for (j = 0; j < e->n_properties; j++) {
 			CgroupPropEntry *prop = e->properties[j];
+
+			pr_info("---> Prop name: %s\n", prop->name);
 
 			if (strcmp(name, prop->name) == 0)
 				if (restore_cgroup_prop(prop, paux, off) < 0)
